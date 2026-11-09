@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HearthPane visual harness</title>
+    <style>
+      html,body { width:100%; height:100%; margin:0; overflow:hidden; background:#080c12; }
+      hearthpane-card { width:100%; height:100%; }
+    </style>
+    <script>
+      const RealDate = Date;
+      const fixed = new RealDate("2026-11-09T13:43:00-06:00");
+      class FixedDate extends RealDate {
+        constructor(...args) { super(...(args.length ? args : [fixed.getTime()])); }
+        static now() { return fixed.getTime(); }
+      }
+      window.Date = FixedDate;
+    </script>
+    <script src="/hearthpane.js"></script>
+  </head>
+  <body>
+    <hearthpane-card id="card"></hearthpane-card>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const format = params.get("layout") || "vertical-2-1";
+      const scenario = params.get("scenario") || "populated";
+      const rotation = Number(params.get("rotation") || 0);
+      const state = (entity_id, value, attributes = {}) => ({ entity_id, state: value, attributes });
+      const states = {
+        "weather.home": state("weather.home", scenario === "unavailable" ? "unavailable" : "sunny", { friendly_name:"Home", temperature:63, temperature_unit:"°F", humidity:36 }),
+        "sensor.living_room": state("sensor.living_room", scenario === "unavailable" ? "unavailable" : "71", { friendly_name:"Living Room", unit_of_measurement:"°F" }),
+        "binary_sensor.front_door": state("binary_sensor.front_door", scenario === "populated" ? "off" : "unavailable", { friendly_name:"Front Door" }),
+        "sensor.departures": state("sensor.departures", scenario === "populated" ? "on" : scenario === "partial" ? "on" : "unavailable", { departures: scenario === "populated" ? [{name:"Route 10 · Downtown",time:"8 min"},{name:"Route 22 · Station",time:"19 min"}] : [] })
+      };
+      const serviceCalls = [];
+      const hass = {
+        states,
+        locale:{language:"en-US",time_format:"12"},
+        config:{time_zone:"America/Chicago"},
+        callService(...args){ serviceCalls.push(args); },
+        async callWS(message){
+          if (message.type === "weather/get_forecasts" || (message.domain === "weather" && message.service === "get_forecasts")) {
+            if (scenario === "empty" || scenario === "unavailable") return {response:{"weather.home":{forecast:[]}}};
+            return {response:{"weather.home":{forecast:[
+              {datetime:"2026-11-10T12:00:00-06:00",condition:"partlycloudy",temperature:64,templow:50},
+              {datetime:"2026-11-11T12:00:00-06:00",condition:"rainy",temperature:61,templow:42},
+              {datetime:"2026-11-12T12:00:00-06:00",condition:"sunny",temperature:56,templow:40}
+            ]}}};
+          }
+          if (message.domain === "calendar" && message.service === "get_events") {
+            if (scenario !== "populated") return {response:{[message.target.entity_id]:{events:[]}}};
+            const items = message.target.entity_id === "calendar.collection" ? [
+              {summary:"Recycling Collection Day",start:{date:"2026-11-10"},end:{date:"2026-11-11"}}
+            ] : [
+              {summary:"Family dinner",start:{dateTime:"2026-11-09T18:00:00-06:00"},end:{dateTime:"2026-11-09T19:00:00-06:00"}},
+              {summary:"School library",start:{dateTime:"2026-11-10T09:30:00-06:00"},end:{dateTime:"2026-11-10T10:00:00-06:00"}}
+            ];
+            return {response:{[message.target.entity_id]:{events:items}}};
+          }
+          if (message.type === "media_source/resolve_media") return {url:"/test/scenic-background.svg"};
+          return {};
+        }
+      };
+      const widgets = {
+        clock:{id:"clock",type:"clock",hour12:true,showSeconds:false,fontSize:"9rem"},
+        date:{id:"date",type:"date",format:"full",fontSize:"2rem"},
+        current:{id:"current",type:"current-weather",entity:"weather.home",animation:true},
+        forecast:{id:"forecast",type:"forecast",entity:"weather.home",days:3,forecastType:"daily",animation:true},
+        alerts:{id:"alerts",type:"alerts",conditions:[{entity:"binary_sensor.front_door",states:["on"],label:"Front door is open"}]},
+        agenda:{id:"agenda",type:"agenda",days:2,maxItems:3,calendars:[{entity:"calendar.family",name:"Family",color:"#64b5f6"},{entity:"calendar.collection",name:"Collection",color:"#75d76b"}]},
+        actions:{id:"actions",type:"action-bar",actions:[{action:"none",label:"Assist",icon:"microphone"},{action:"none",label:"Home",icon:"home"}]},
+        entity:{id:"entity",type:"entity",entity:"sensor.living_room"},
+        month:{id:"month",type:"month-calendar",days:42,calendars:[{entity:"calendar.family",name:"Family",color:"#64b5f6"}]},
+        transport:{id:"transport",type:"transportation",entity:"sensor.departures",rowsAttribute:"departures",fields:{name:"name",time:"time"}},
+        separator:{id:"separator",type:"separator"},
+        embedded:{id:"embedded",type:"ha-card",card:{type:"custom:not-installed"}}
+      };
+      function zone(items, extra={}) { return {widgets:items,...extra}; }
+      let zones;
+      if (format === "vertical-2-1" || format === "vertical-1-2") {
+        zones={
+          "top-left":zone([]),"middle-left":zone([widgets.clock,widgets.date],{align:"center",justify:"center"}),"bottom-left":zone([widgets.actions],{justify:"end"}),
+          "top-right":zone([widgets.current,widgets.forecast]),"middle-right":zone([widgets.alerts],{justify:"center"}),"bottom-right":zone([widgets.agenda],{justify:"end"})
+        };
+      } else if (format.startsWith("horizontal")) {
+        zones={"top-left":zone([widgets.clock,widgets.date],{justify:"center"}),"top-center":zone([widgets.current,widgets.forecast]),"top-right":zone([widgets.agenda]),"bottom-left":zone([widgets.actions]),"bottom-center":zone([widgets.entity,widgets.separator]),"bottom-right":zone([widgets.transport])};
+      } else {
+        zones={"top-left":zone([widgets.clock]),"top-center":zone([widgets.current]),"top-right":zone([widgets.forecast]),"middle-left":zone([widgets.date]),"middle-center":zone([widgets.month]),"middle-right":zone([widgets.transport]),"bottom-left":zone([widgets.actions]),"bottom-center":zone([widgets.entity]),"bottom-right":zone([widgets.agenda])};
+      }
+      const config={
+        type:"custom:hearthpane-card",
+        appearance:{fontFamily:"Roboto, Arial, sans-serif",fontColor:"#fff",accentColor:"#64b5f6",textShadow:"0 2px 8px rgba(0,0,0,.8)",railColor:"rgba(8,11,16,.64)",glassColor:"rgba(16,22,30,.58)",scrimColor:"rgba(0,0,0,.42)",timeZone:"America/Chicago",locale:"en-US",scale:1},
+        background:{source:"images",images:["/test/scenic-background.svg",...(rotation?["/test/scenic-background-two.svg"]:[])],opacity:1,rotationInterval:rotation,objectFit:"cover",position:"center center",transitionSeconds:.03},
+        layout:{format,preset:"classic",spacing:{padding:28,zoneGap:18,widgetGap:12},zones}
+      };
+      const card=document.getElementById("card");
+      card.setConfig(config);
+      card.hass=hass;
+      window.harness={card,hass,config,serviceCalls};
+    </script>
+  </body>
+</html>

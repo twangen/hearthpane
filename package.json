@@ -1,0 +1,25 @@
+{
+  "name": "hearthpane",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "An independent, configurable ambient dashboard card for Home Assistant.",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run test/unit",
+    "test:browser": "playwright test",
+    "test:browser:update": "playwright test --update-snapshots",
+    "inspect:bundle": "node scripts/inspect-bundle.mjs",
+    "test": "npm run typecheck && npm run test:unit && npm run build && npm run inspect:bundle"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "26.6.6",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.2",
+    "vitest": "5.1.0"
+  }
+}

@@ -1,0 +1,93 @@
+type: custom:hearthpane-card
+appearance:
+  fontFamily: Roboto, system-ui, sans-serif
+  fontColor: "#ffffff"
+  accentColor: "#64b5f6"
+  textShadow: 0 2px 8px rgba(0, 0, 0, 0.8)
+  locale: en-US
+  timeZone: America/Chicago
+  scale: 1
+  railColor: rgba(8, 11, 16, 0.64)
+  glassColor: rgba(16, 22, 30, 0.58)
+  scrimColor: rgba(0, 0, 0, 0.42)
+background:
+  source: sensor
+  config:
+    entity: sensor.your_backgrounds
+    attribute: files
+  opacity: 1
+  rotationInterval: 300
+  objectFit: cover
+  position: center center
+  transitionSeconds: 1.2
+layout:
+  format: vertical-2-1
+  preset: classic
+  spacing:
+    padding: 28
+    zoneGap: 18
+    widgetGap: 12
+  zones:
+    top-left:
+      widgets: []
+    middle-left:
+      align: center
+      justify: center
+      widgets:
+        - id: clock
+          type: clock
+          hour12: true
+          showSeconds: false
+          fontSize: 9rem
+        - id: date
+          type: date
+          format: full
+          fontSize: 2rem
+    bottom-left:
+      justify: end
+      widgets:
+        - id: actions
+          type: action-bar
+          actions:
+            - action: none
+              label: Assist
+              icon: microphone
+              pipeline_id: preferred
+              start_listening: true
+            - action: none
+              label: Home
+              icon: home
+              navigation_path: /lovelace/home
+    top-right:
+      widgets:
+        - id: current-weather
+          type: current-weather
+          entity: weather.your_home
+          animation: true
+        - id: forecast
+          type: forecast
+          entity: weather.your_home
+          forecastType: daily
+          days: 3
+          animation: true
+    middle-right:
+      justify: center
+      widgets:
+        - id: alerts
+          type: alerts
+          conditions:
+            - entity: binary_sensor.your_front_door
+              states: ["on"]
+              label: Front door is open
+              color: "#ffb74d"
+    bottom-right:
+      justify: end
+      widgets:
+        - id: agenda
+          type: agenda
+          days: 2
+          maxItems: 3
+          calendars:
+            - entity: calendar.your_family
+              name: Family
+              color: "#64b5f6"

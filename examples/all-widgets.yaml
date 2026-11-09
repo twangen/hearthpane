@@ -1,0 +1,57 @@
+type: custom:hearthpane-card
+background:
+  source: images
+  images:
+    - /local/hearthpane/example.jpg
+  rotationInterval: 300
+  opacity: 1
+  objectFit: cover
+layout:
+  format: 3x3
+  zones:
+    top-left:
+      widgets:
+        - { id: clock, type: clock, hour12: true }
+        - { id: date, type: date, format: full }
+    top-center:
+      widgets:
+        - { id: weather, type: current-weather, entity: weather.your_home, animation: true }
+    top-right:
+      widgets:
+        - { id: forecast, type: forecast, entity: weather.your_home, days: 3 }
+    middle-left:
+      widgets:
+        - { id: sensor, type: entity, entity: sensor.your_temperature }
+        - { id: rule, type: separator }
+    middle-center:
+      widgets:
+        - id: month
+          type: month-calendar
+          calendars:
+            - { entity: calendar.your_family, name: Family, color: "#64b5f6" }
+    middle-right:
+      widgets:
+        - id: departures
+          type: transportation
+          entity: sensor.your_departures
+          rowsAttribute: departures
+          fields: { name: name, time: time }
+    bottom-left:
+      widgets:
+        - id: alerts
+          type: alerts
+          conditions:
+            - { entity: alarm_control_panel.your_home, states: [pending, triggered] }
+    bottom-center:
+      widgets:
+        - id: embedded
+          type: ha-card
+          card:
+            type: markdown
+            content: Embedded Home Assistant card
+    bottom-right:
+      widgets:
+        - id: actions
+          type: action-bar
+          actions:
+            - { action: none, label: Safe action, icon: circle }
