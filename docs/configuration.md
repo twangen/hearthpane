@@ -1,6 +1,6 @@
 # Configuration reference
 
-HearthPane uses the same nested shape in YAML and in its visual designer:
+HearthPane uses the same nested shape in YAML and in its visual designer. Dashboard-wide fields live under **Dashboard settings**; selecting a widget opens one contextual editor with its data, display, position, and action fields. Design mode arranges widgets, while Preview mode renders the real card with actions disabled:
 
 ```yaml
 type: custom:hearthpane-card

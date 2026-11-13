@@ -10,7 +10,7 @@ The included **HearthPane Classic** preset uses a two-thirds photo stage and one
 
 - One self-contained `hearthpane.js` runtime bundle
 - Native Web Component and Shadow DOM
-- Full-screen mouse, touch, and keyboard-friendly widget designer
+- Full-screen contextual widget designer with direct edit/delete controls, Undo, and a safe live preview
 - Five layouts and nine named drop zones
 - Original inline SVG artwork for every Home Assistant weather condition, with smooth animation for current conditions
 - Home Assistant weather, calendar, media source, entity, action, and service APIs
@@ -45,7 +45,7 @@ Catalog submission is intentionally deferred until the card reaches visual and d
 1. Open the dashboard you want to use and edit its view.
 2. Select **Panel (single card)**.
 3. Add **HearthPane**.
-4. Open the full designer, choose a preset, and select your own entities.
+4. Open the full designer, choose a preset, and select your own entities. Use Design mode to arrange widgets and Preview mode to inspect the real card with actions safely disabled.
 
 The shortest YAML configuration is:
 

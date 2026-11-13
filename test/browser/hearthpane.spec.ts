@@ -159,9 +159,25 @@ test.describe("visual designer", () => {
   test("adds, selects, edits, and persists widgets through standard events", async ({ page }) => {
     await page.getByRole("button", { name: /Entity$/ }).click();
     await expect(page.locator("hearthpane-card-editor .widget-tile")).toHaveCount(8);
+    await expect(page.getByRole("heading", { name: "Edit Entity" })).toBeVisible();
     await page.locator("hearthpane-card-editor input[data-path='widget.title']").fill("Room temperature");
     await page.waitForTimeout(220);
     expect(await page.evaluate(() => (window as unknown as { designerChanges: () => number }).designerChanges())).toBeGreaterThan(0);
+  });
+
+  test("uses explicit dashboard and widget drawer contexts without ambiguous tabs", async ({ page }) => {
+    await expect(page.getByRole("button", { name: "Content" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Appearance" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Behavior" })).toHaveCount(0);
+
+    await page.locator("hearthpane-card-editor [data-command='edit-widget'][data-widget-id='clock']").first().click();
+    await expect(page.getByRole("heading", { name: "Edit Clock" })).toBeVisible();
+    await expect(page.locator("hearthpane-card-editor input[data-path='widget.fontSize']")).toBeVisible();
+
+    await page.getByRole("button", { name: /Dashboard settings/ }).click();
+    await expect(page.getByRole("heading", { name: "Dashboard settings" })).toBeVisible();
+    await expect(page.locator("hearthpane-card-editor input[data-path='widget.fontSize']")).toHaveCount(0);
+    await expect(page.locator("hearthpane-card-editor select[data-path='background.source']")).toBeVisible();
   });
 
   test("keeps the selected background source and uses a true full-screen 16:10 canvas", async ({ page }) => {
@@ -174,14 +190,50 @@ test.describe("visual designer", () => {
     const canvasBounds = await canvas.boundingBox();
     expect((canvasBounds?.width || 0) / (canvasBounds?.height || 1)).toBeCloseTo(1.6, 1);
 
-    await page.getByRole("button", { name: "Appearance" }).click();
+    await page.getByRole("button", { name: /Dashboard settings/ }).click();
     const source = page.locator("hearthpane-card-editor select[data-path='background.source']");
     await source.selectOption("url");
     await expect(source).toHaveValue("url");
     await expect(page.locator("hearthpane-card-editor input[data-path='background.url']")).toBeVisible();
+
+    await page.getByRole("button", { name: "Close dashboard settings" }).click();
+    await expect(page.locator("hearthpane-card-editor .workspace")).not.toHaveClass(/drawer-open/);
+  });
+
+  test("renders a live inert preview and updates it from the widget drawer", async ({ page }) => {
+    await page.locator("hearthpane-card-editor [data-command='edit-widget'][data-widget-id='clock']").first().click();
+    await page.getByRole("button", { name: "Preview" }).click();
+    const preview = page.locator("hearthpane-card-editor .preview-card");
+    await expect(preview).toBeVisible();
+    await expect(preview.locator(".hp-action")).toHaveCount(2);
+    await expect(preview.locator(".hp-action").first()).toBeDisabled();
+    await expect(preview.locator(".hp-weather-current .hp-weather-icon")).toHaveClass(/is-animated/);
+    expect(await preview.evaluate((element) => getComputedStyle(element).pointerEvents)).toBe("none");
+
+    await page.locator("hearthpane-card-editor input[data-path='widget.fontSize']").fill("10rem");
+    await expect(preview.locator(".hp-clock-time")).toHaveCSS("font-size", "160px");
+    expect(await page.evaluate(() => (window as unknown as { harness: { serviceCalls: unknown[] } }).harness.serviceCalls.length)).toBe(0);
+  });
+
+  test("deletes directly and restores the exact widget position with Undo", async ({ page }) => {
+    const middleLeft = page.locator("hearthpane-card-editor [data-drop-zone='middle-left']");
+    await expect(middleLeft.locator("[data-widget-tile]")).toHaveCount(2);
+    await page.getByRole("button", { name: "Delete Date" }).click();
+    await expect(middleLeft.locator("[data-widget-tile='date']")).toHaveCount(0);
+    await expect(page.getByRole("status")).toContainText("Date removed");
+    await page.waitForTimeout(220);
+    const afterDelete = await page.evaluate(() => (window as unknown as { designerChanges: () => number }).designerChanges());
+    expect(afterDelete).toBeGreaterThan(0);
+
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(middleLeft.locator("[data-widget-tile]")).toHaveCount(2);
+    await expect(middleLeft.locator("[data-widget-tile]").nth(1)).toHaveAttribute("data-widget-tile", "date");
+    await page.waitForTimeout(220);
+    expect(await page.evaluate(() => (window as unknown as { designerChanges: () => number }).designerChanges())).toBeGreaterThan(afterDelete);
   });
 
   test("supports keyboard reorder controls", async ({ page }) => {
+    await page.locator("hearthpane-card-editor [data-command='edit-widget'][data-widget-id='clock']").first().click();
     const down = page.locator("hearthpane-card-editor [data-command='move-down']").filter({ visible: true }).first();
     await down.focus();
     await down.press("Enter");
