@@ -4,7 +4,7 @@ HearthPane is a self-contained ambient dashboard card for Home Assistant. It rec
 
 The included **HearthPane Classic** preset uses a two-thirds photo stage and one-third translucent information rail, a large clock and date, animated weather, conditional alerts, a short agenda, and child-safe actions that default to `none`.
 
-> HearthPane is currently a `v0.x` prerelease. The existing Clock dashboard does not need to be changed to try it.
+> HearthPane is currently pre-1.0 software. The existing Clock dashboard does not need to be changed to try it.
 
 ## Highlights
 
@@ -27,7 +27,7 @@ The included **HearthPane Classic** preset uses a two-thirds photo stage and one
 3. Add `https://github.com/twangen/hearthpane` as a **Dashboard** repository.
 4. Install HearthPane and reload the frontend.
 
-After a prerelease exists, you can also use the Home Assistant My link:
+After a release exists, you can also use the Home Assistant My link:
 
 [![Open your Home Assistant instance and add this repository](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=twangen&repository=hearthpane&category=plugin)
 
@@ -35,7 +35,7 @@ Catalog submission is intentionally deferred until the card reaches visual and d
 
 ### Manual single-file install
 
-1. Download `hearthpane.js` from the latest prerelease.
+1. Download `hearthpane.js` from the latest release.
 2. Copy it to `/config/www/hearthpane/hearthpane.js`.
 3. Add `/local/hearthpane/hearthpane.js` as a JavaScript module under **Settings → Dashboards → Resources**.
 4. Reload the frontend.
