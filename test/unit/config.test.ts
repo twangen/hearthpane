@@ -57,6 +57,27 @@ describe("configuration normalization", () => {
     expect(config.layout.zones["top-right"]?.widgets).toEqual([]);
   });
 
+  it("preserves clock and date typography settings", () => {
+    const config = normalizeConfig({
+      type: "custom:hearthpane-card",
+      layout: {
+        format: "vertical-2-1",
+        zones: {
+          "middle-left": {
+            widgets: [
+              { id: "clock", type: "clock", fontSize: "160px", fontWeight: 700, fontStyle: "italic", textAlign: "left" },
+              { id: "date", type: "date", fontSize: "36px", fontWeight: 500, fontStyle: "normal", textAlign: "right" }
+            ]
+          }
+        }
+      }
+    });
+    expect(config.layout.zones["middle-left"]?.widgets).toEqual([
+      expect.objectContaining({ id: "clock", fontSize: "160px", fontWeight: 700, fontStyle: "italic", textAlign: "left" }),
+      expect.objectContaining({ id: "date", fontSize: "36px", fontWeight: 500, fontStyle: "normal", textAlign: "right" })
+    ]);
+  });
+
   it.each(["3x3", "vertical-2-1", "vertical-1-2", "horizontal-2-1", "horizontal-1-2"] as const)(
     "defines complete %s layout geometry",
     (format) => {

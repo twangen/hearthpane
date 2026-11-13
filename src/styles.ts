@@ -48,10 +48,10 @@ export const cardStyles = `
   .hp-zone.is-glass { background: var(--hp-glass); border-radius: 18px; padding: 18px; }
   .hp-widget { min-width: 0; text-shadow: var(--hp-shadow); }
   .hp-widget-placeholder { padding: 12px 14px; border: 1px dashed rgba(255,255,255,.26); border-radius: 12px; color: rgba(255,255,255,.65); font-size: .88rem; text-align: center; }
-  .hp-clock { display: flex; align-items: baseline; justify-content: center; white-space: nowrap; font-weight: 300; line-height: .86; letter-spacing: -.045em; }
+  .hp-clock { display: flex; width: 100%; align-items: baseline; justify-content: var(--hp-clock-justify, center); white-space: nowrap; font-weight: var(--hp-clock-weight, 300); font-style: var(--hp-clock-style, normal); line-height: .86; letter-spacing: -.045em; }
   .hp-clock-time { font-size: var(--hp-clock-size, 9rem); }
-  .hp-clock-period { margin-left: .18em; font-size: calc(var(--hp-clock-size, 9rem) * .235); letter-spacing: 0; font-weight: 300; opacity: .92; text-transform: lowercase; }
-  .hp-date { text-align: center; font-size: var(--hp-date-size, 2rem); font-weight: 400; line-height: 1.2; }
+  .hp-clock-period { margin-left: .18em; font-size: calc(var(--hp-clock-size, 9rem) * .235); letter-spacing: 0; font-weight: inherit; opacity: .92; text-transform: lowercase; }
+  .hp-date { width: 100%; text-align: var(--hp-date-align, center); font-size: var(--hp-date-size, 2rem); font-weight: var(--hp-date-weight, 400); font-style: var(--hp-date-style, normal); line-height: 1.2; }
   .hp-weather-current { display: grid; grid-template-columns: 62px minmax(0,1fr) auto; align-items: center; column-gap: 10px; }
   .hp-weather-current .hp-weather-icon { width: 58px; height: 58px; }
   .hp-weather-copy { min-width: 0; }

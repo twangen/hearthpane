@@ -172,11 +172,13 @@ test.describe("visual designer", () => {
 
     await page.locator("hearthpane-card-editor [data-command='edit-widget'][data-widget-id='clock']").first().click();
     await expect(page.getByRole("heading", { name: "Edit Clock" })).toBeVisible();
-    await expect(page.locator("hearthpane-card-editor input[data-path='widget.fontSize']")).toBeVisible();
+    await expect(page.locator("hearthpane-card-editor select[data-widget-field='fontSize']")).toBeVisible();
+    await expect(page.locator("hearthpane-card-editor select[data-widget-field='fontWeight']")).toContainText("Bold");
+    await expect(page.locator("hearthpane-card-editor select[data-widget-field='fontStyle']")).toContainText("Italic");
 
     await page.getByRole("button", { name: /Dashboard settings/ }).click();
     await expect(page.getByRole("heading", { name: "Dashboard settings" })).toBeVisible();
-    await expect(page.locator("hearthpane-card-editor input[data-path='widget.fontSize']")).toHaveCount(0);
+    await expect(page.locator("hearthpane-card-editor select[data-widget-field='fontSize']")).toHaveCount(0);
     await expect(page.locator("hearthpane-card-editor select[data-path='background.source']")).toBeVisible();
   });
 
@@ -210,8 +212,14 @@ test.describe("visual designer", () => {
     await expect(preview.locator(".hp-weather-current .hp-weather-icon")).toHaveClass(/is-animated/);
     expect(await preview.evaluate((element) => getComputedStyle(element).pointerEvents)).toBe("none");
 
-    await page.locator("hearthpane-card-editor input[data-path='widget.fontSize']").fill("10rem");
+    await page.locator("hearthpane-card-editor select[data-widget-field='fontSize']").selectOption("160");
+    await page.locator("hearthpane-card-editor select[data-widget-field='fontWeight']").selectOption("700");
+    await page.locator("hearthpane-card-editor select[data-widget-field='fontStyle']").selectOption("italic");
+    await page.locator("hearthpane-card-editor select[data-widget-field='textAlign']").selectOption("left");
     await expect(preview.locator(".hp-clock-time")).toHaveCSS("font-size", "160px");
+    await expect(preview.locator(".hp-clock")).toHaveCSS("font-weight", "700");
+    await expect(preview.locator(".hp-clock")).toHaveCSS("font-style", "italic");
+    expect(["flex-start", "flow-start"]).toContain(await preview.locator(".hp-clock").evaluate((element) => getComputedStyle(element).justifyContent));
     expect(await page.evaluate(() => (window as unknown as { harness: { serviceCalls: unknown[] } }).harness.serviceCalls.length)).toBe(0);
   });
 

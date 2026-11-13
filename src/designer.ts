@@ -26,6 +26,24 @@ const WIDGET_TYPES: WidgetType[] = [
   "transportation"
 ];
 
+const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224];
+const FONT_WEIGHTS = [
+  { value: "300", label: "Light" },
+  { value: "400", label: "Regular" },
+  { value: "500", label: "Medium" },
+  { value: "600", label: "Semi-bold" },
+  { value: "700", label: "Bold" }
+];
+const FONT_STYLES = [
+  { value: "normal", label: "Normal" },
+  { value: "italic", label: "Italic" }
+];
+const TEXT_ALIGNMENTS = [
+  { value: "left", label: "Left" },
+  { value: "center", label: "Center" },
+  { value: "right", label: "Right" }
+];
+
 type DrawerMode = "closed" | "dashboard" | "widget";
 type CanvasMode = "design" | "preview";
 
@@ -326,10 +344,10 @@ export class HearthPaneCardEditor extends HTMLElement {
     let actions = "";
     switch (widget.type) {
       case "clock":
-        display = `${this._check("12-hour time", "hour12", widget.hour12 !== false, widget.id)}${this._check("Show seconds", "showSeconds", Boolean(widget.showSeconds), widget.id)}${this._field("Font size", "widget.fontSize", widget.fontSize || "9rem", "text", "", "", "", widget.id)}`;
+        display = `${this._check("12-hour time", "hour12", widget.hour12 !== false, widget.id)}${this._check("Show seconds", "showSeconds", Boolean(widget.showSeconds), widget.id)}${this._typographyFields(widget, 144, 300)}`;
         break;
       case "date":
-        display = `${this._selectWidgetField("Date format", "format", String(widget.format || "full"), ["full", "short", "numeric"], widget.id)}${this._field("Font size", "widget.fontSize", widget.fontSize || "2rem", "text", "", "", "", widget.id)}`;
+        display = `${this._selectWidgetField("Date format", "format", String(widget.format || "full"), ["full", "short", "numeric"], widget.id)}${this._typographyFields(widget, 32, 400)}`;
         break;
       case "current-weather":
         data = this._entityField("Weather entity", widget.entity || "", widget.id, "weather");
@@ -398,6 +416,27 @@ export class HearthPaneCardEditor extends HTMLElement {
 
   private _selectWidgetField(label: string, field: string, value: string, options: string[], widgetId: string): string {
     return `<div class="field"><label>${escapeHtml(label)}</label><select data-widget-field="${escapeHtml(field)}" data-widget-id="${escapeHtml(widgetId)}">${options.map((option) => `<option value="${option}" ${option === value ? "selected" : ""}>${escapeHtml(humanize(option))}</option>`).join("")}</select></div>`;
+  }
+
+  private _labeledWidgetSelect(label: string, field: string, value: string, options: Array<{ value: string; label: string }>, widgetId: string, numeric = false): string {
+    return `<div class="field"><label>${escapeHtml(label)}</label><select data-widget-field="${escapeHtml(field)}" data-widget-id="${escapeHtml(widgetId)}" ${numeric ? "data-widget-number" : ""}>${options.map((option) => `<option value="${escapeHtml(option.value)}" ${option.value === value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}</select></div>`;
+  }
+
+  private _typographyFields(widget: WidgetConfig, defaultSize: number, defaultWeight: number): string {
+    const size = this._fontSizeNumber(widget.fontSize, defaultSize);
+    const sizes = FONT_SIZES.includes(size) ? FONT_SIZES : [...FONT_SIZES, size].sort((left, right) => left - right);
+    return `${this._labeledWidgetSelect("Font size", "fontSize", String(size), sizes.map((option) => ({ value: String(option), label: String(option) })), widget.id)}
+      ${this._labeledWidgetSelect("Weight", "fontWeight", String(widget.fontWeight || defaultWeight), FONT_WEIGHTS, widget.id, true)}
+      ${this._labeledWidgetSelect("Style", "fontStyle", widget.fontStyle || "normal", FONT_STYLES, widget.id)}
+      ${this._labeledWidgetSelect("Alignment", "textAlign", widget.textAlign || "center", TEXT_ALIGNMENTS, widget.id)}`;
+  }
+
+  private _fontSizeNumber(value: string | undefined, fallback: number): number {
+    if (!value) return fallback;
+    const match = value.trim().match(/^(\d+(?:\.\d+)?)(px|rem)?$/i);
+    if (!match) return fallback;
+    const number = Number(match[1]) * (match[2]?.toLowerCase() === "rem" ? 16 : 1);
+    return Math.max(8, Math.min(320, Math.round(number)));
   }
 
   private _selectActionField(label: string, field: string, value: string, options: string[], widgetId: string, index: number): string {
@@ -493,7 +532,15 @@ export class HearthPaneCardEditor extends HTMLElement {
     if (target.dataset.widgetField) {
       const found = this._findWidget(target.dataset.widgetId || "");
       if (!found) return;
-      found.widget[target.dataset.widgetField] = target.type === "checkbox" ? (target as HTMLInputElement).checked : this._coerce(target);
+      const field = target.dataset.widgetField;
+      const value = target.type === "checkbox"
+        ? (target as HTMLInputElement).checked
+        : field === "fontSize"
+          ? `${target.value}px`
+          : target.hasAttribute("data-widget-number")
+            ? Number(target.value)
+            : this._coerce(target);
+      found.widget[field] = value;
       this._changed(true);
       return;
     }

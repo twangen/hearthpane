@@ -40,6 +40,8 @@ Formats are `3x3`, `vertical-2-1`, `vertical-1-2`, `horizontal-2-1`, and `horizo
 - `ha-card`
 - `transportation`
 
+Clock and date widgets support `fontSize`, `fontWeight`, `fontStyle`, and `textAlign`. The visual designer presents font size as a numeric pixel selector, weights from Light through Bold, Normal or Italic style, and left, center, or right alignment. Existing CSS font sizes such as `9rem` remain supported in YAML and are converted to their numeric equivalent when opened in the designer.
+
 The transportation widget reads an array from a Home Assistant entity attribute. `rowsAttribute` selects the array, and `fields.name`/`fields.time` map row values. It never calls an external transit provider.
 
 ## Actions

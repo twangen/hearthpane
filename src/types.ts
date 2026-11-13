@@ -69,6 +69,9 @@ export interface WidgetConfig {
   hour12?: boolean;
   showSeconds?: boolean;
   fontSize?: string;
+  fontWeight?: number;
+  fontStyle?: "normal" | "italic";
+  textAlign?: "left" | "center" | "right";
   animation?: boolean;
   days?: number;
   maxItems?: number;

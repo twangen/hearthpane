@@ -369,13 +369,24 @@ export class HearthPaneCard extends HTMLElement {
     const locale = widget.locale || this._config.appearance.locale || localeFor(this._hass);
     const timeZone = widget.timeZone || this._config.appearance.timeZone || timeZoneFor(this._hass);
     const parts = timeParts(this._now, locale, timeZone, widget.hour12 !== false, Boolean(widget.showSeconds));
-    return `<div class="hp-clock" style="--hp-clock-size:${escapeHtml(widget.fontSize || "9rem")}"><span class="hp-clock-time">${escapeHtml(parts.time)}</span>${parts.period ? `<span class="hp-clock-period">${escapeHtml(parts.period)}</span>` : ""}</div>`;
+    const weight = this._fontWeight(widget.fontWeight, 300);
+    const style = widget.fontStyle === "italic" ? "italic" : "normal";
+    const justify = widget.textAlign === "left" ? "flex-start" : widget.textAlign === "right" ? "flex-end" : "center";
+    return `<div class="hp-clock" style="--hp-clock-size:${escapeHtml(widget.fontSize || "9rem")};--hp-clock-weight:${weight};--hp-clock-style:${style};--hp-clock-justify:${justify}"><span class="hp-clock-time">${escapeHtml(parts.time)}</span>${parts.period ? `<span class="hp-clock-period">${escapeHtml(parts.period)}</span>` : ""}</div>`;
   }
 
   private _renderDate(widget: WidgetConfig): string {
     const locale = widget.locale || this._config.appearance.locale || localeFor(this._hass);
     const timeZone = widget.timeZone || this._config.appearance.timeZone || timeZoneFor(this._hass);
-    return `<div class="hp-date" style="--hp-date-size:${escapeHtml(widget.fontSize || "2rem")}">${escapeHtml(fullDate(this._now, locale, timeZone, widget.format || "full"))}</div>`;
+    const weight = this._fontWeight(widget.fontWeight, 400);
+    const style = widget.fontStyle === "italic" ? "italic" : "normal";
+    const align = ["left", "right"].includes(widget.textAlign || "") ? widget.textAlign : "center";
+    return `<div class="hp-date" style="--hp-date-size:${escapeHtml(widget.fontSize || "2rem")};--hp-date-weight:${weight};--hp-date-style:${style};--hp-date-align:${align}">${escapeHtml(fullDate(this._now, locale, timeZone, widget.format || "full"))}</div>`;
+  }
+
+  private _fontWeight(value: number | undefined, fallback: number): number {
+    const weight = Number(value);
+    return [300, 400, 500, 600, 700].includes(weight) ? weight : fallback;
   }
 
   private _renderCurrentWeather(widget: WidgetConfig): string {
