@@ -11,10 +11,7 @@ appearance:
   glassColor: rgba(16, 22, 30, 0.58)
   scrimColor: rgba(0, 0, 0, 0.42)
 background:
-  source: sensor
-  config:
-    entity: sensor.your_backgrounds
-    attribute: files
+  source: picsum
   opacity: 1
   rotationInterval: 300
   objectFit: cover
@@ -69,7 +66,7 @@ layout:
           entity: weather.your_home
           forecastType: daily
           days: 3
-          animation: true
+          animation: false
     middle-right:
       justify: center
       widgets:

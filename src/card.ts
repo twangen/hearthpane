@@ -48,6 +48,7 @@ export class HearthPaneCard extends HTMLElement {
   private _events = new Map<string, CalendarEvent[]>();
   private _lastFetch = new Map<string, number>();
   private _embeddedCards = new Map<string, EmbeddedCard>();
+  private _stateFingerprint = "";
 
   static getConfigElement(): HTMLElement {
     return document.createElement("hearthpane-card-editor");
@@ -80,6 +81,7 @@ export class HearthPaneCard extends HTMLElement {
     this._backgroundIndex = 0;
     this._previousBackground = "";
     this._resolvedBackgrounds = [];
+    this._stateFingerprint = "";
     this._resolveBackgrounds();
     this._restartBackgroundRotation();
     this._requestData();
@@ -90,7 +92,13 @@ export class HearthPaneCard extends HTMLElement {
     this._hass = value;
     this._resolveBackgrounds();
     this._requestData();
-    this._render();
+    const fingerprint = this._relevantStateFingerprint(value);
+    if (fingerprint !== this._stateFingerprint) {
+      this._stateFingerprint = fingerprint;
+      this._render();
+    } else {
+      for (const card of this._embeddedCards.values()) card.hass = value;
+    }
   }
 
   getCardSize(): number {
@@ -106,9 +114,39 @@ export class HearthPaneCard extends HTMLElement {
       const next = new Date();
       if (hasSeconds || next.getMinutes() !== this._now.getMinutes()) {
         this._now = next;
-        this._render();
+        this._refreshTimeWidgets();
       }
     }, 1000);
+  }
+
+  private _refreshTimeWidgets(): void {
+    if (!this.shadowRoot) return;
+    for (const zone of Object.values(this._config.layout.zones)) {
+      for (const widget of zone?.widgets || []) {
+        if (widget.type !== "clock" && widget.type !== "date") continue;
+        const container = Array.from(this.shadowRoot.querySelectorAll<HTMLElement>("[data-widget-id]"))
+          .find((element) => element.dataset.widgetId === widget.id);
+        if (container) container.innerHTML = widget.type === "clock" ? this._renderClock(widget) : this._renderDate(widget);
+      }
+    }
+  }
+
+  private _relevantStateFingerprint(hass: HomeAssistantLike): string {
+    const entityIds = new Set<string>();
+    if (this._config.background.source === "sensor" && this._config.background.config?.entity) {
+      entityIds.add(this._config.background.config.entity);
+    }
+    for (const zone of Object.values(this._config.layout.zones)) {
+      for (const widget of zone?.widgets || []) {
+        if (widget.entity) entityIds.add(widget.entity);
+        for (const entity of widget.entities || []) entityIds.add(entity);
+        for (const condition of widget.conditions || []) entityIds.add(condition.entity);
+      }
+    }
+    return JSON.stringify(Array.from(entityIds).sort().map((entityId) => {
+      const entity = hass.states[entityId];
+      return entity ? [entityId, entity.state, entity.attributes] : [entityId, null];
+    }));
   }
 
   private _restartBackgroundRotation(): void {
@@ -366,7 +404,7 @@ export class HearthPaneCard extends HTMLElement {
       const day = Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat(locale, { weekday: "short" }).format(date);
       const high = item.temperature ?? item.native_temperature;
       const low = item.templow ?? item.native_templow;
-      return `<div class="hp-forecast-row"><div class="hp-forecast-day">${escapeHtml(day)}</div>${weatherIcon(item.condition, widget.animation !== false)}<div class="hp-forecast-condition">${escapeHtml(weatherLabel(item.condition))}</div><div class="hp-forecast-range">${escapeHtml(formatTemperature(low, unit))} · ${escapeHtml(formatTemperature(high, unit))}</div></div>`;
+      return `<div class="hp-forecast-row"><div class="hp-forecast-day">${escapeHtml(day)}</div>${weatherIcon(item.condition, false)}<div class="hp-forecast-condition">${escapeHtml(weatherLabel(item.condition))}</div><div class="hp-forecast-range">${escapeHtml(formatTemperature(low, unit))} · ${escapeHtml(formatTemperature(high, unit))}</div></div>`;
     }).join("")}</div>`;
   }
 

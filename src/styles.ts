@@ -104,12 +104,25 @@ export const cardStyles = `
   .hp-month-day.has-event::after { content: ""; position: absolute; bottom: 1px; width: 3px; height: 3px; border-radius: 50%; background: currentColor; }
   .hp-embedded-card { text-shadow: none; }
   .hp-warning { margin: 10px; padding: 10px 14px; border: 1px solid rgba(255,183,77,.5); border-radius: 10px; background: rgba(70,42,0,.65); color: #ffd59d; font-size: .8rem; }
-  .hp-weather-icon { display: block; overflow: visible; filter: drop-shadow(0 2px 4px rgba(0,0,0,.45)); }
-  .hp-weather-icon .hp-rays { transform-origin: 48px 48px; }
+  .hp-weather-icon { display: block; overflow: visible; contain: layout paint; filter: drop-shadow(0 2px 4px rgba(0,0,0,.45)); }
+  .hp-weather-icon .hp-rays,
+  .hp-weather-icon .hp-cloud,
+  .hp-weather-icon .hp-rain,
+  .hp-weather-icon .hp-snow,
+  .hp-weather-icon .hp-fog,
+  .hp-weather-icon .hp-wind,
+  .hp-weather-icon .hp-moon { transform-box: fill-box; transform-origin: center; }
+  .hp-weather-icon.is-animated .hp-rays,
+  .hp-weather-icon.is-animated .hp-cloud,
+  .hp-weather-icon.is-animated .hp-rain,
+  .hp-weather-icon.is-animated .hp-snow,
+  .hp-weather-icon.is-animated .hp-fog,
+  .hp-weather-icon.is-animated .hp-wind,
+  .hp-weather-icon.is-animated .hp-moon,
+  .hp-weather-icon.is-animated .hp-star { will-change: transform, opacity; }
   .hp-weather-icon.is-animated .hp-rays { animation: hp-spin 14s linear infinite; }
-  .hp-weather-icon.is-animated .hp-cloud { animation: hp-drift 4.5s ease-in-out infinite; }
-  .hp-weather-icon.is-animated .hp-rain path { animation: hp-rain 1.1s ease-in infinite; }
-  .hp-weather-icon.is-animated .hp-rain path:nth-child(2n) { animation-delay: -.55s; }
+  .hp-weather-icon.is-animated .hp-cloud:not(.hp-cloud-small) { animation: hp-drift 4.5s ease-in-out infinite; }
+  .hp-weather-icon.is-animated .hp-rain { animation: hp-rain 1.35s linear infinite; }
   .hp-weather-icon.is-animated .hp-snow { animation: hp-snow 2.2s ease-in-out infinite; }
   .hp-weather-icon.is-animated .hp-lightning { animation: hp-flash 4s steps(1,end) infinite; }
   .hp-weather-icon.is-animated .hp-fog { animation: hp-fog 4s ease-in-out infinite; }
@@ -118,13 +131,13 @@ export const cardStyles = `
   .hp-weather-icon.is-animated .hp-star { animation: hp-twinkle 2s ease-in-out infinite alternate; }
   .hp-weather-icon.is-animated .hp-star-b { animation-delay: -1s; }
   @keyframes hp-spin { to { transform: rotate(360deg); } }
-  @keyframes hp-drift { 0%,100% { transform: translateX(-1px); } 50% { transform: translateX(2px); } }
-  @keyframes hp-rain { 0% { opacity: 0; transform: translateY(-4px); } 45% { opacity: 1; } 100% { opacity: 0; transform: translateY(7px); } }
-  @keyframes hp-snow { 0%,100% { transform: translate(0,-1px); } 50% { transform: translate(2px,3px); } }
+  @keyframes hp-drift { 0%,100% { transform: translate3d(-1px,0,0); } 50% { transform: translate3d(2px,0,0); } }
+  @keyframes hp-rain { 0% { opacity: .25; transform: translate3d(0,-3px,0); } 50% { opacity: 1; } 100% { opacity: .25; transform: translate3d(0,6px,0); } }
+  @keyframes hp-snow { 0%,100% { transform: translate3d(0,-1px,0); } 50% { transform: translate3d(2px,3px,0); } }
   @keyframes hp-flash { 0%,88%,92%,100% { opacity: 1; } 89%,91% { opacity: .1; } }
-  @keyframes hp-fog { 0%,100% { transform: translateX(-2px); opacity: .72; } 50% { transform: translateX(3px); opacity: 1; } }
-  @keyframes hp-wind { 0%,100% { transform: translateX(-2px); } 50% { transform: translateX(3px); } }
-  @keyframes hp-float { 0%,100% { transform: translateY(-1px); } 50% { transform: translateY(2px); } }
+  @keyframes hp-fog { 0%,100% { transform: translate3d(-2px,0,0); opacity: .72; } 50% { transform: translate3d(3px,0,0); opacity: 1; } }
+  @keyframes hp-wind { 0%,100% { transform: translate3d(-2px,0,0); } 50% { transform: translate3d(3px,0,0); } }
+  @keyframes hp-float { 0%,100% { transform: translate3d(0,-1px,0); } 50% { transform: translate3d(0,2px,0); } }
   @keyframes hp-twinkle { from { opacity: .3; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
     .hp-weather-icon * { animation: none !important; }

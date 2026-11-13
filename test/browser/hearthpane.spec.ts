@@ -67,6 +67,22 @@ test.describe("HearthPane Classic", () => {
     expect(animation).toBe("none");
   });
 
+  test("animates only current conditions and preserves the animation across unrelated state updates", async ({ page }) => {
+    await openHarness(page);
+    const current = page.locator("hearthpane-card .hp-weather-current .hp-weather-icon");
+    const forecastIcons = page.locator("hearthpane-card .hp-forecast-row .hp-weather-icon");
+    await expect(current).toHaveClass(/is-animated/);
+    await expect(forecastIcons).toHaveCount(3);
+    expect(await forecastIcons.evaluateAll((icons) => icons.every((icon) => !icon.classList.contains("is-animated")))).toBe(true);
+    await current.evaluate((element) => element.setAttribute("data-animation-probe", "stable"));
+    await page.evaluate(() => {
+      const harness = (window as unknown as { harness: { card: HTMLElement & { hass: unknown }; hass: any } }).harness;
+      harness.hass.states["sensor.unrelated"] = { entity_id: "sensor.unrelated", state: "changed", attributes: {} };
+      harness.card.hass = harness.hass;
+    });
+    await expect(current).toHaveAttribute("data-animation-probe", "stable");
+  });
+
   test("none actions are inert and child-safe", async ({ page }) => {
     await openHarness(page);
     const buttons = page.locator("hearthpane-card .hp-action");
@@ -146,6 +162,23 @@ test.describe("visual designer", () => {
     await page.locator("hearthpane-card-editor input[data-path='widget.title']").fill("Room temperature");
     await page.waitForTimeout(220);
     expect(await page.evaluate(() => (window as unknown as { designerChanges: () => number }).designerChanges())).toBeGreaterThan(0);
+  });
+
+  test("keeps the selected background source and uses a true full-screen 16:10 canvas", async ({ page }) => {
+    const designer = page.locator("hearthpane-card-editor .designer");
+    const bounds = await designer.boundingBox();
+    expect(bounds?.width).toBeCloseTo(1280, 0);
+    expect(bounds?.height).toBeCloseTo(800, 0);
+
+    const canvas = page.locator("hearthpane-card-editor .canvas");
+    const canvasBounds = await canvas.boundingBox();
+    expect((canvasBounds?.width || 0) / (canvasBounds?.height || 1)).toBeCloseTo(1.6, 1);
+
+    await page.getByRole("button", { name: "Appearance" }).click();
+    const source = page.locator("hearthpane-card-editor select[data-path='background.source']");
+    await source.selectOption("url");
+    await expect(source).toHaveValue("url");
+    await expect(page.locator("hearthpane-card-editor input[data-path='background.url']")).toBeVisible();
   });
 
   test("supports keyboard reorder controls", async ({ page }) => {

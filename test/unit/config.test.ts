@@ -20,13 +20,27 @@ describe("configuration normalization", () => {
     expect(config.layout.zones["bottom-left"]?.widgets[0].actions?.map((action) => action.action)).toEqual(["none", "none"]);
   });
 
-  it("normalizes legacy sensor backgrounds without making provider calls", () => {
+  it("normalizes implicit legacy sensor backgrounds but honors an explicit source", () => {
     const config = normalizeConfig({
       type: "custom:hearthpane-card",
-      background: { source: "picsum", config: { entity: "sensor.backgrounds" } }
+      background: { config: { entity: "sensor.backgrounds" } }
     });
     expect(config.background.source).toBe("sensor");
     expect(unsupportedProvider(config)).toBeUndefined();
+
+    const explicit = normalizeConfig({
+      type: "custom:hearthpane-card",
+      background: { source: "picsum", config: { entity: "sensor.backgrounds" } }
+    });
+    expect(explicit.background.source).toBe("picsum");
+  });
+
+  it("uses Picsum by default and keeps forecast artwork static", () => {
+    const config = classicPreset();
+    expect(config.background.source).toBe("picsum");
+    expect(config.layout.zones["top-right"]?.widgets.find((widget) => widget.type === "forecast")?.animation).toBe(false);
+    expect(backgroundCandidates(config, {})).toHaveLength(8);
+    expect(backgroundCandidates(config, {})[0]).toContain("picsum.photos/1920/1080");
   });
 
   it("warns for unsupported external providers", () => {
@@ -55,20 +69,18 @@ describe("configuration normalization", () => {
 });
 
 describe("Home Assistant data normalization", () => {
-  it("resolves direct, list, and sensor backgrounds without duplicates", () => {
+  it("resolves legacy sensor backgrounds without duplicates", () => {
     const config = normalizeConfig({
       type: "custom:hearthpane-card",
       background: {
         source: "sensor",
-        url: "/local/one.jpg",
-        images: ["/local/two.jpg", "/local/one.jpg"],
         config: { entity: "sensor.backgrounds", attribute: "files" }
       }
     });
     const states = {
       "sensor.backgrounds": { entity_id: "sensor.backgrounds", state: "2", attributes: { files: ["media-source://one", "media-source://two"] } }
     };
-    expect(backgroundCandidates(config, states)).toEqual(["/local/one.jpg", "/local/two.jpg", "media-source://one", "media-source://two"]);
+    expect(backgroundCandidates(config, states)).toEqual(["media-source://one", "media-source://two"]);
   });
 
   it("parses weather forecast service responses", () => {

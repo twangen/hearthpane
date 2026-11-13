@@ -14,7 +14,7 @@ import type {
   ZoneName
 } from "./types";
 
-export const UNSUPPORTED_BACKGROUND_PROVIDERS = ["openweathermap", "unsplash", "picsum", "immich"];
+export const UNSUPPORTED_BACKGROUND_PROVIDERS = ["openweathermap", "unsplash", "immich"];
 
 const widgetAliases: Record<string, WidgetType> = {
   "weather-current": "current-weather",
@@ -39,7 +39,7 @@ const defaultAppearance: HearthPaneConfig["appearance"] = {
 };
 
 const defaultBackground: HearthPaneConfig["background"] = {
-  source: "images",
+  source: "picsum",
   images: [],
   opacity: 1,
   rotationInterval: 300,
@@ -86,7 +86,7 @@ export function classicPreset(): HearthPaneConfig {
         ),
         "top-right": zone([
           { id: "classic-current-weather", type: "current-weather", entity: "", animation: true },
-          { id: "classic-forecast", type: "forecast", entity: "", days: 3, forecastType: "daily", animation: true }
+          { id: "classic-forecast", type: "forecast", entity: "", days: 3, forecastType: "daily", animation: false }
         ]),
         "middle-right": zone([{ id: "classic-alerts", type: "alerts", conditions: [] }], {
           justify: "center"
@@ -147,7 +147,13 @@ export function normalizeConfig(raw: unknown): HearthPaneConfig {
     ? format
     : "vertical-2-1";
 
-  const normalizedSource = legacyBackgroundConfig.entity ? "sensor" : String(background.source || preset.background.source);
+  // An explicit source always wins. Older Clock-style configurations only
+  // implied the sensor source through background.config.entity.
+  const normalizedSource = background.source
+    ? String(background.source)
+    : legacyBackgroundConfig.entity
+      ? "sensor"
+      : String(preset.background.source);
   const configuredZones = asRecord(layout.zones);
   const hasConfiguredZones = Object.keys(configuredZones).length > 0;
   const zones: HearthPaneConfig["layout"]["zones"] = {};
@@ -199,8 +205,15 @@ export function unsupportedProvider(config: HearthPaneConfig): string | undefine
 export function backgroundCandidates(config: HearthPaneConfig, states: Record<string, HassEntity>): string[] {
   const background = config.background;
   const result: string[] = [];
-  if (background.url) result.push(background.url);
-  if (background.images) result.push(...background.images);
+  if (background.source === "picsum") {
+    // Distinct query keys let Picsum supply a small rotation without making
+    // the rest of HearthPane depend on a cloud image SDK.
+    for (let index = 1; index <= 8; index += 1) {
+      result.push(`https://picsum.photos/1920/1080?random=${index}`);
+    }
+  }
+  if (["url", "media"].includes(background.source) && background.url) result.push(background.url);
+  if (background.source === "images" && background.images) result.push(...background.images);
   if (background.source === "sensor") {
     const entity = background.config?.entity || "";
     const attribute = background.config?.attribute || "files";

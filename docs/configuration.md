@@ -20,9 +20,9 @@ layout:
 
 ## Backgrounds
 
-Supported sources are Home Assistant media identifiers, authenticated media-source identifiers from a sensor `files` attribute, local URLs, and an explicit `images` list. `opacity`, `rotationInterval`, `objectFit`, `position`, and `transitionSeconds` control presentation.
+The default `picsum` source supplies a rotating set of free random 1920×1080 photos. `media` accepts a Home Assistant path such as `/local/backgrounds/photo.jpg` or an authenticated `media-source://` identifier. `url` accepts one image URL, and `images` accepts an explicit list. `opacity`, `rotationInterval`, `objectFit`, `position`, and `transitionSeconds` control presentation.
 
-A legacy background containing `config.entity` is normalized to the sensor source. `openweathermap`, `unsplash`, `picsum`, and `immich` display an editor warning and never make a network request.
+A legacy background that omits `source` but contains `config.entity` is normalized to the sensor source. An explicitly selected source always wins, which prevents the visual editor from snapping back to Sensor. `openweathermap`, `unsplash`, and `immich` display an editor warning and never make a network request.
 
 ## Layouts and zones
 
@@ -31,7 +31,7 @@ Formats are `3x3`, `vertical-2-1`, `vertical-1-2`, `horizontal-2-1`, and `horizo
 ## Widgets
 
 - `clock` and `date`
-- `current-weather` and `forecast`
+- `current-weather` and static `forecast` rows; animation is limited to current conditions to reduce rendering work
 - `agenda` and `month-calendar`
 - `entity`
 - `alerts`

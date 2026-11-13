@@ -36,12 +36,13 @@ const editorStyles = `
   button { border:0; border-radius:9px; padding:9px 13px; background:var(--primary-color,#03a9f4); color:var(--text-primary-color,#fff); cursor:pointer; }
   button.secondary { background:var(--secondary-background-color,#253240); }
   button.danger { background:#8f3440; }
-  .designer { position:fixed; inset:0; z-index:99999; display:grid; grid-template-rows:auto 1fr; background:#0b1118; color:#eef5ff; }
+  .designer { position:fixed; inset:0; z-index:99999; display:grid; width:100vw; height:100vh; max-width:none; max-height:none; margin:0; padding:0; grid-template-rows:auto minmax(0,1fr); border:0; background:#0b1118; color:#eef5ff; }
+  .designer::backdrop { background:#0b1118; }
   .toolbar { display:flex; align-items:center; gap:12px; min-height:58px; padding:8px 14px; border-bottom:1px solid #263444; background:#121b25; }
   .brand { font-weight:700; letter-spacing:.02em; margin-right:auto; }
   .toolbar label { display:flex; align-items:center; gap:7px; color:#aebccc; font-size:.8rem; }
   .toolbar select { min-width:150px; border:1px solid #334456; border-radius:8px; padding:7px 10px; background:#0e1720; color:#fff; }
-  .workspace { display:grid; grid-template-columns:220px minmax(420px,1fr) 320px; min-height:0; }
+  .workspace { display:grid; grid-template-columns:220px minmax(0,1fr) 320px; min-width:0; min-height:0; }
   .palette,.inspector { overflow:auto; background:#111a24; }
   .palette { border-right:1px solid #263444; padding:15px; }
   .inspector { border-left:1px solid #263444; }
@@ -49,8 +50,8 @@ const editorStyles = `
   .palette-items { display:grid; gap:7px; }
   .palette-item { display:flex; align-items:center; justify-content:flex-start; width:100%; border:1px solid #2d3d4f; background:#182430; color:#eef5ff; text-align:left; touch-action:none; }
   .palette-item:hover { border-color:#5aaee8; }
-  .canvas-wrap { overflow:auto; padding:22px; background:repeating-linear-gradient(45deg,#0d141c,#0d141c 12px,#101923 12px,#101923 24px); }
-  .canvas { display:grid; width:min(100%,1000px); aspect-ratio:16/10; margin:auto; gap:10px; padding:12px; border:1px solid #35485b; border-radius:10px; background:#101c26; box-shadow:0 16px 44px rgba(0,0,0,.35); }
+  .canvas-wrap { display:grid; min-width:0; min-height:0; overflow:auto; place-items:center; padding:22px; background:repeating-linear-gradient(45deg,#0d141c,#0d141c 12px,#101923 12px,#101923 24px); }
+  .canvas { display:grid; width:min(100%,1280px); aspect-ratio:16/10; margin:auto; gap:10px; padding:12px; border:1px solid #35485b; border-radius:10px; background:#101c26; box-shadow:0 16px 44px rgba(0,0,0,.35); }
   .canvas.format-vertical-2-1,.canvas.format-vertical-1-2 { grid-template-columns:2fr 1fr; grid-template-rows:repeat(3,1fr); }
   .canvas.format-vertical-1-2 { grid-template-columns:1fr 2fr; }
   .canvas.format-horizontal-2-1,.canvas.format-horizontal-1-2 { grid-template-columns:repeat(3,1fr); grid-template-rows:2fr 1fr; }
@@ -79,6 +80,7 @@ const editorStyles = `
   .group-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:.74rem; font-weight:600; }
   .group-head button { padding:4px 7px; background:#51303a; font-size:.68rem; }
   .warning { margin:0 0 12px; padding:9px; border:1px solid #875d28; border-radius:7px; background:#332610; color:#ffd59c; font-size:.74rem; }
+  .help { margin:-4px 0 13px; color:#8394a8; font-size:.7rem; line-height:1.4; }
   ha-entity-picker { display:block; width:100%; --mdc-theme-surface:#0b141d; }
   @media (max-width:900px) { .workspace { grid-template-columns:170px minmax(320px,1fr) 280px; } }
 `;
@@ -89,7 +91,7 @@ function widgetDefaults(type: WidgetType, id: string): WidgetConfig {
     case "clock": return { ...common, hour12: true, showSeconds: false, fontSize: "9rem" };
     case "date": return { ...common, format: "full", fontSize: "2rem" };
     case "current-weather": return { ...common, entity: "", animation: true };
-    case "forecast": return { ...common, entity: "", days: 3, forecastType: "daily", animation: true };
+    case "forecast": return { ...common, entity: "", days: 3, forecastType: "daily", animation: false };
     case "agenda": return { ...common, calendars: [], days: 2, maxItems: 3 };
     case "month-calendar": return { ...common, calendars: [], days: 42 };
     case "entity": return { ...common, entity: "" };
@@ -139,6 +141,19 @@ export class HearthPaneCardEditor extends HTMLElement {
   private _render(): void {
     if (!this.shadowRoot) return;
     this.shadowRoot.innerHTML = `<style>${editorStyles}</style>${this._open ? this._renderDesigner() : this._renderSummary()}`;
+    if (this._open) {
+      const dialog = this.shadowRoot.querySelector<HTMLDialogElement>("dialog.designer");
+      if (dialog && typeof dialog.showModal === "function" && !dialog.open) {
+        dialog.showModal();
+        dialog.addEventListener("cancel", (event) => {
+          event.preventDefault();
+          this._open = false;
+          this._render();
+        }, { once: true });
+      } else if (dialog) {
+        dialog.setAttribute("open", "");
+      }
+    }
     this._hydrateEntityPickers();
   }
 
@@ -148,7 +163,7 @@ export class HearthPaneCardEditor extends HTMLElement {
   }
 
   private _renderDesigner(): string {
-    return `<div class="designer">
+    return `<dialog class="designer">
       <div class="toolbar">
         <div class="brand">HearthPane Designer</div>
         <label>Layout <select data-layout>${["vertical-2-1", "vertical-1-2", "horizontal-2-1", "horizontal-1-2", "3x3"].map((format) => `<option value="${format}" ${format === this._config.layout.format ? "selected" : ""}>${escapeHtml(humanize(format))}</option>`).join("")}</select></label>
@@ -160,7 +175,7 @@ export class HearthPaneCardEditor extends HTMLElement {
         <main class="canvas-wrap"><div class="canvas format-${escapeHtml(this._config.layout.format)}">${this._renderZones()}</div></main>
         <aside class="inspector"><div class="tabs">${(["content", "appearance", "behavior"] as const).map((tab) => `<button data-tab="${tab}" class="${tab === this._tab ? "is-active" : ""}">${humanize(tab)}</button>`).join("")}</div><div class="inspector-body">${this._renderInspector()}</div></aside>
       </div>
-    </div>`;
+    </dialog>`;
   }
 
   private _renderZones(): string {
@@ -186,6 +201,14 @@ export class HearthPaneCardEditor extends HTMLElement {
   private _renderInspector(): string {
     const provider = unsupportedProvider(this._config);
     if (this._tab === "appearance") {
+      const backgroundSource = this._config.background.source;
+      const backgroundFields = backgroundSource === "sensor"
+        ? `${this._field("Sensor entity", "background.config.entity", this._config.background.config?.entity || "", "entity")}${this._field("Sensor attribute", "background.config.attribute", this._config.background.config?.attribute || "files")}`
+        : backgroundSource === "images"
+          ? this._textAreaField("Images (one path or URL per line)", "background.images", (this._config.background.images || []).join("\n"), true)
+          : ["url", "media"].includes(backgroundSource)
+            ? this._field(backgroundSource === "media" ? "Home Assistant file or media ID" : "Image URL", "background.url", this._config.background.url || "")
+            : `<div class="help">Picsum supplies free random 1920×1080 photos and rotates them at the interval below. This source makes requests to picsum.photos.</div>`;
       return `${provider ? `<div class="warning">${escapeHtml(humanize(provider))} is not a supported background provider and will never make a network request.</div>` : ""}
         ${this._field("Font family", "appearance.fontFamily", this._config.appearance.fontFamily)}
         ${this._field("Text color", "appearance.fontColor", this._config.appearance.fontColor, "color")}
@@ -195,10 +218,8 @@ export class HearthPaneCardEditor extends HTMLElement {
         ${this._field("Readability scrim", "appearance.scrimColor", this._config.appearance.scrimColor)}
         ${this._field("Scale", "appearance.scale", this._config.appearance.scale, "number", "0.5", "2", "0.05")}
         <div class="panel-title">Background</div>
-        ${this._selectField("Source", "background.source", this._config.background.source, ["images", "url", "media", "sensor", "openweathermap", "unsplash", "picsum", "immich"])}
-        ${this._field("Single URL", "background.url", this._config.background.url || "")}
-        ${this._field("Sensor entity", "background.config.entity", this._config.background.config?.entity || "", "entity")}
-        ${this._field("Sensor attribute", "background.config.attribute", this._config.background.config?.attribute || "files")}
+        ${this._selectField("Source", "background.source", backgroundSource, ["picsum", "media", "url", "images", ...(backgroundSource === "sensor" ? ["sensor"] : [])])}
+        ${backgroundFields}
         ${this._field("Rotation seconds", "background.rotationInterval", this._config.background.rotationInterval, "number", "0", "86400", "1")}
         ${this._field("Opacity", "background.opacity", this._config.background.opacity, "number", "0", "1", "0.05")}
         ${this._selectField("Crop", "background.objectFit", this._config.background.objectFit, ["cover", "contain", "fill", "none", "scale-down"])}
@@ -246,7 +267,7 @@ export class HearthPaneCardEditor extends HTMLElement {
 
   private _renderBehaviorInspector(widget: WidgetConfig, zone: ZoneName): string {
     return `<div class="field"><label>Move to zone</label><select data-widget-zone="${escapeHtml(widget.id)}">${activeZones(this._config.layout.format).map((name) => `<option value="${name}" ${name === zone ? "selected" : ""}>${escapeHtml(humanize(name))}</option>`).join("")}</select></div>
-      ${(widget.type === "current-weather" || widget.type === "forecast") ? this._check("Animate artwork", "animation", widget.animation !== false, widget.id) : ""}
+      ${widget.type === "current-weather" ? this._check("Animate current conditions", "animation", widget.animation !== false, widget.id) : ""}
       <button class="danger" data-command="delete-widget" data-widget-id="${escapeHtml(widget.id)}">Delete widget</button>`;
   }
 
@@ -263,6 +284,10 @@ export class HearthPaneCardEditor extends HTMLElement {
   private _field(label: string, path: string, value: unknown, type = "text", min = "", max = "", step = "", widgetId = "", index?: number): string {
     if (type === "entity") return this._entityField(label, String(value || ""), widgetId);
     return `<div class="field"><label>${escapeHtml(label)}</label><input type="${type}" value="${escapeHtml(value)}" data-path="${escapeHtml(path)}" ${widgetId ? `data-widget-id="${escapeHtml(widgetId)}"` : ""} ${index == null ? "" : `data-index="${index}"`} ${min ? `min="${min}"` : ""} ${max ? `max="${max}"` : ""} ${step ? `step="${step}"` : ""}/></div>`;
+  }
+
+  private _textAreaField(label: string, path: string, value: string, lines = false): string {
+    return `<div class="field"><label>${escapeHtml(label)}</label><textarea data-path="${escapeHtml(path)}" ${lines ? "data-lines" : ""}>${escapeHtml(value)}</textarea></div>`;
   }
 
   private _selectField(label: string, path: string, value: string, options: string[]): string {
@@ -360,7 +385,7 @@ export class HearthPaneCardEditor extends HTMLElement {
     }
     if (target.dataset.path) {
       this._setPath(target.dataset.path, this._coerce(target), target.dataset.widgetId, target.dataset.index);
-      this._changed(false);
+      this._changed(target.dataset.path === "background.source");
     }
   }
 
@@ -380,7 +405,10 @@ export class HearthPaneCardEditor extends HTMLElement {
       return;
     }
     if (target.dataset.path && target.type !== "color") {
-      this._setPath(target.dataset.path, this._coerce(target), target.dataset.widgetId, target.dataset.index);
+      const value = target.hasAttribute("data-lines")
+        ? target.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)
+        : this._coerce(target);
+      this._setPath(target.dataset.path, value, target.dataset.widgetId, target.dataset.index);
       this._changed(false);
     }
   }
