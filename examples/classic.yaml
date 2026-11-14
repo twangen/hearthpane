@@ -11,7 +11,7 @@ appearance:
   glassColor: rgba(16, 22, 30, 0.58)
   scrimColor: rgba(0, 0, 0, 0.42)
 background:
-  source: picsum
+  source: collection
   opacity: 1
   rotationInterval: 300
   objectFit: cover

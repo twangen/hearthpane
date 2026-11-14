@@ -1,4 +1,5 @@
 import { performHearthPaneAction } from "./actions";
+import { BackgroundLoader, collectionBackgrounds, shuffledBackgrounds } from "./backgrounds";
 import {
   backgroundCandidates,
   classicPreset,
@@ -36,13 +37,17 @@ type EmbeddedCard = HTMLElement & { hass?: HomeAssistantLike; setConfig?: (confi
 export class HearthPaneCard extends HTMLElement {
   private _hass?: HomeAssistantLike;
   private _config: HearthPaneConfig = classicPreset();
+  private _hasConfig = false;
   private _now = new Date();
   private _clockTimer = 0;
   private _backgroundTimer = 0;
   private _transitionTimer = 0;
-  private _backgroundIndex = 0;
   private _previousBackground = "";
-  private _resolvedBackgrounds: string[] = [];
+  private readonly _collection = shuffledBackgrounds(collectionBackgrounds());
+  private readonly _backgroundLoader = new BackgroundLoader(
+    (value) => this._resolveMedia(value),
+    () => this._showBackground()
+  );
   private _mediaCache = new Map<string, string>();
   private _forecasts = new Map<string, ForecastItem[]>();
   private _events = new Map<string, CalendarEvent[]>();
@@ -66,6 +71,7 @@ export class HearthPaneCard extends HTMLElement {
 
   connectedCallback(): void {
     this._startClock();
+    this._resolveBackgrounds();
     this._restartBackgroundRotation();
     this._render();
   }
@@ -74,13 +80,16 @@ export class HearthPaneCard extends HTMLElement {
     window.clearInterval(this._clockTimer);
     window.clearInterval(this._backgroundTimer);
     window.clearTimeout(this._transitionTimer);
+    this._previousBackground = "";
+    this._backgroundLoader.stop();
   }
 
   setConfig(config: unknown): void {
     this._config = normalizeConfig(config);
-    this._backgroundIndex = 0;
+    this._hasConfig = true;
     this._previousBackground = "";
-    this._resolvedBackgrounds = [];
+    window.clearTimeout(this._transitionTimer);
+    this._backgroundLoader.stop();
     this._stateFingerprint = "";
     this._resolveBackgrounds();
     this._restartBackgroundRotation();
@@ -157,31 +166,51 @@ export class HearthPaneCard extends HTMLElement {
   }
 
   private _rotateBackground(): void {
-    if (this._resolvedBackgrounds.length < 2) return;
-    this._previousBackground = this._currentBackground();
-    this._backgroundIndex = (this._backgroundIndex + 1) % this._resolvedBackgrounds.length;
-    this._render();
+    if (this._previousBackground) return;
+    void this._backgroundLoader.advance();
+  }
+
+  private _showBackground(): void {
+    const base = this.shadowRoot?.querySelector<HTMLElement>(".hp-background");
+    if (!base) return;
+    const oldImage = base.querySelector<HTMLImageElement>("img");
+    const current = this._currentBackground();
+    if (oldImage?.getAttribute("src") === current) return;
     window.clearTimeout(this._transitionTimer);
-    this._transitionTimer = window.setTimeout(() => {
+    this.shadowRoot?.querySelector(".hp-background-next")?.remove();
+    if (!oldImage || this._config.background.transitionSeconds === 0) {
+      base.innerHTML = `<img src="${escapeHtml(current)}" alt="" />`;
       this._previousBackground = "";
-      this._render();
+      return;
+    }
+    this._previousBackground = oldImage.getAttribute("src") || "";
+    const next = document.createElement("div");
+    next.className = "hp-background-next";
+    next.style.opacity = "0";
+    next.innerHTML = `<img src="${escapeHtml(current)}" alt="" />`;
+    base.insertAdjacentElement("afterend", next);
+    // Flush the zero-opacity frame before starting the transition.
+    void next.offsetWidth;
+    next.classList.add("is-visible");
+    next.style.opacity = String(this._config.background.opacity);
+    this._transitionTimer = window.setTimeout(() => {
+      const liveBase = this.shadowRoot?.querySelector(".hp-background");
+      if (liveBase) liveBase.innerHTML = `<img src="${escapeHtml(current)}" alt="" />`;
+      this.shadowRoot?.querySelector(".hp-background-next")?.remove();
+      this._previousBackground = "";
     }, this._config.background.transitionSeconds * 1000 + 40);
   }
 
   private _currentBackground(): string {
-    if (!this._resolvedBackgrounds.length) return "";
-    return this._resolvedBackgrounds[this._backgroundIndex % this._resolvedBackgrounds.length] || "";
+    return this._backgroundLoader.current;
   }
 
-  private async _resolveBackgrounds(): Promise<void> {
-    const raw = backgroundCandidates(this._config, this._hass?.states || {});
-    const resolved = await Promise.all(raw.map((item) => this._resolveMedia(item)));
-    const next = resolved.filter(Boolean);
-    if (JSON.stringify(next) !== JSON.stringify(this._resolvedBackgrounds)) {
-      this._resolvedBackgrounds = next;
-      this._backgroundIndex %= Math.max(next.length, 1);
-      this._render();
-    }
+  private _resolveBackgrounds(): void {
+    if (!this.isConnected || !this._hasConfig) return;
+    const raw = this._config.background.source === "collection"
+      ? this._collection
+      : backgroundCandidates(this._config, this._hass?.states || {});
+    this._backgroundLoader.setSources(raw, unsupportedProvider(this._config) ? [] : this._collection);
   }
 
   private async _resolveMedia(value: string): Promise<string> {

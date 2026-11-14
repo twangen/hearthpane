@@ -35,12 +35,14 @@ describe("configuration normalization", () => {
     expect(explicit.background.source).toBe("picsum");
   });
 
-  it("uses Picsum by default and keeps forecast artwork static", () => {
+  it("uses the collection by default and keeps forecast artwork static", () => {
     const config = classicPreset();
-    expect(config.background.source).toBe("picsum");
+    expect(config.background.source).toBe("collection");
     expect(config.layout.zones["top-right"]?.widgets.find((widget) => widget.type === "forecast")?.animation).toBe(false);
+    expect(backgroundCandidates(config, {})).toHaveLength(4);
+    expect(backgroundCandidates(config, {})[0]).toContain("raw.githubusercontent.com/twangen/hearthpane/v0.7.0/assets/backgrounds/");
+    config.background.source = "picsum";
     expect(backgroundCandidates(config, {})).toHaveLength(8);
-    expect(backgroundCandidates(config, {})[0]).toContain("picsum.photos/1920/1080");
   });
 
   it("warns for unsupported external providers", () => {

@@ -1,4 +1,5 @@
 import { activeZones } from "./layouts";
+import { collectionBackgrounds } from "./backgrounds";
 import type {
   AlertCondition,
   CalendarEvent,
@@ -39,7 +40,7 @@ const defaultAppearance: HearthPaneConfig["appearance"] = {
 };
 
 const defaultBackground: HearthPaneConfig["background"] = {
-  source: "picsum",
+  source: "collection",
   images: [],
   opacity: 1,
   rotationInterval: 300,
@@ -205,6 +206,7 @@ export function unsupportedProvider(config: HearthPaneConfig): string | undefine
 export function backgroundCandidates(config: HearthPaneConfig, states: Record<string, HassEntity>): string[] {
   const background = config.background;
   const result: string[] = [];
+  if (background.source === "collection") result.push(...collectionBackgrounds());
   if (background.source === "picsum") {
     // Distinct query keys let Picsum supply a small rotation without making
     // the rest of HearthPane depend on a cloud image SDK.

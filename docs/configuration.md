@@ -20,7 +20,11 @@ layout:
 
 ## Backgrounds
 
-The default `picsum` source supplies a rotating set of free random 1920×1080 photos. `media` accepts a Home Assistant path such as `/local/backgrounds/photo.jpg` or an authenticated `media-source://` identifier. `url` accepts one image URL, and `images` accepts an explicit list. `opacity`, `rotationInterval`, `objectFit`, `position`, and `transitionSeconds` control presentation.
+The default `collection` source supplies four original AI-generated 1280×800 nature images hosted at `raw.githubusercontent.com/twangen/hearthpane/v<installed-version>/assets/backgrounds/`. It shuffles once per card instance and rotates without immediate repeats. Images require internet access and are not embedded in the single-file JavaScript install.
+
+The optional `picsum` source supplies free random 1920×1080 photos. `media` accepts a Home Assistant path such as `/local/backgrounds/photo.jpg` or an authenticated `media-source://` identifier. `url` accepts one image URL, and `images` accepts an explicit list. `opacity`, `rotationInterval`, `objectFit`, `position`, and `transitionSeconds` control presentation. A zero rotation interval disables timed rotation.
+
+Only successfully preloaded images replace the current photo. Failed loads or ten-second timeouts skip the image for ten minutes. Once all selected images fail, the card tries its GitHub-hosted collection without rewriting configuration. If that also fails, it retains the last successful photo or displays the local gradient on a fresh load. This fallback can contact GitHub even for a failed local/media source. Existing explicit source selections remain unchanged after upgrading.
 
 A legacy background that omits `source` but contains `config.entity` is normalized to the sensor source. An explicitly selected source always wins, which prevents the visual editor from snapping back to Sensor. `openweathermap`, `unsplash`, and `immich` display an editor warning and never make a network request.
 

@@ -310,11 +310,14 @@ export class HearthPaneCardEditor extends HTMLElement {
         ? this._textAreaField("Images (one path or URL per line)", "background.images", (this._config.background.images || []).join("\n"), true)
         : ["url", "media"].includes(backgroundSource)
           ? this._field(backgroundSource === "media" ? "Home Assistant file or media ID" : "Image URL", "background.url", this._config.background.url || "")
-          : `<div class="help">Picsum supplies free random 1920×1080 photos and rotates them at the interval below. This source makes requests to picsum.photos.</div>`;
+          : backgroundSource === "collection"
+            ? `<div class="help">Four original nature photos hosted by HearthPane on GitHub. Requires internet access and makes image requests to raw.githubusercontent.com.</div>`
+            : `<div class="help">Picsum supplies free random 1920×1080 photos. Failed sources fall back to the HearthPane Collection on GitHub, then the local gradient if no photo can load.</div>`;
     return `${provider ? `<div class="warning">${escapeHtml(humanize(provider))} is not a supported background provider and will never make a network request.</div>` : ""}
       <section class="inspector-section"><h3>Background</h3>
-        ${this._selectField("Source", "background.source", backgroundSource, ["picsum", "media", "url", "images", ...(backgroundSource === "sensor" ? ["sensor"] : [])])}
+        ${this._selectField("Source", "background.source", backgroundSource, ["collection", "picsum", "media", "url", "images", ...(backgroundSource === "sensor" ? ["sensor"] : [])])}
         ${backgroundFields}
+        ${backgroundSource !== "collection" ? `<div class="help">If this source cannot load, HearthPane tries its GitHub-hosted collection. It keeps the last successful photo or displays a local gradient when all sources fail.</div>` : ""}
         ${this._field("Rotation seconds", "background.rotationInterval", this._config.background.rotationInterval, "number", "0", "86400", "1")}
         ${this._field("Opacity", "background.opacity", this._config.background.opacity, "number", "0", "1", "0.05")}
         ${this._selectField("Crop", "background.objectFit", this._config.background.objectFit, ["cover", "contain", "fill", "none", "scale-down"])}
@@ -411,7 +414,7 @@ export class HearthPaneCardEditor extends HTMLElement {
   }
 
   private _selectField(label: string, path: string, value: string, options: string[]): string {
-    return `<div class="field"><label>${escapeHtml(label)}</label><select data-path="${escapeHtml(path)}">${options.map((option) => `<option value="${option}" ${option === value ? "selected" : ""}>${escapeHtml(humanize(option))}</option>`).join("")}</select></div>`;
+    return `<div class="field"><label>${escapeHtml(label)}</label><select data-path="${escapeHtml(path)}">${options.map((option) => `<option value="${option}" ${option === value ? "selected" : ""}>${escapeHtml(option === "collection" ? "HearthPane Collection" : humanize(option))}</option>`).join("")}</select></div>`;
   }
 
   private _selectWidgetField(label: string, field: string, value: string, options: string[], widgetId: string): string {

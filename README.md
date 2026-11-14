@@ -14,7 +14,7 @@ The included **HearthPane Classic** preset uses a two-thirds photo stage and one
 - Five layouts and nine named drop zones
 - Original inline SVG artwork for every Home Assistant weather condition, with smooth animation for current conditions
 - Home Assistant weather, calendar, media source, entity, action, and service APIs
-- Picsum backgrounds by default, with simple Home Assistant file, media, URL, and image-list alternatives
+- HearthPane Collection nature backgrounds by default, with Picsum, Home Assistant file, media, URL, and image-list alternatives
 - No external fonts, runtime imports, or custom-card dependencies
 - Android 8.1-era WebView build target; readability does not depend on `backdrop-filter`
 
@@ -57,7 +57,17 @@ That opens the entity-neutral Classic preset. Assist and Home are visible but in
 
 ## Backgrounds
 
-HearthPane uses free random 1920×1080 photos from Picsum by default. You can instead select a Home Assistant path such as `/local/backgrounds/photo.jpg`, an authenticated `media-source://` identifier, any image URL, or a list of images:
+HearthPane defaults to the **HearthPane Collection**: four original AI-generated 1280×800 nature images hosted in this repository at the installed card's release tag. The collection shuffles once per card instance and rotates every five minutes. Images load from `raw.githubusercontent.com` and require internet access; HACS still installs only `hearthpane.js`.
+
+Select `collection` in the designer or YAML:
+
+```yaml
+background:
+  source: collection
+  rotationInterval: 300
+```
+
+You can instead select Picsum, a Home Assistant path such as `/local/backgrounds/photo.jpg`, an authenticated `media-source://` identifier, any image URL, or a list of images:
 
 ```yaml
 background:
@@ -67,7 +77,9 @@ background:
   objectFit: cover
 ```
 
-The default `picsum` source makes image requests to `picsum.photos`. Legacy sensor-backed backgrounds remain readable for existing dashboards, but are no longer needed for new configurations. OpenWeatherMap, Unsplash, and Immich provider configurations show a clear warning and make no request. See the [configuration reference](docs/configuration.md) for every widget and action.
+Existing selected sources are preserved. Images preload before crossfading; failed images time out after ten seconds and are skipped for ten minutes. If the selected source fails completely, HearthPane tries its collection without changing your configuration. If every source fails, it keeps the last successful photo or shows a local gradient on a fresh load. Picsum makes requests to `picsum.photos`; fallback images make requests to `raw.githubusercontent.com` even when your selected source is local.
+
+Legacy sensor-backed backgrounds remain readable. OpenWeatherMap, Unsplash, and Immich provider configurations show a clear warning and make no request, including fallback requests. See the [configuration reference](docs/configuration.md) for every widget and action. Collection assets and generation prompts are in [assets/backgrounds](assets/backgrounds).
 
 ## Development
 
@@ -82,7 +94,7 @@ npm run test:browser
 
 ## Privacy and independence
 
-The public presets contain no household entity IDs. HearthPane reads only the Home Assistant entities selected in the dashboard configuration. The runtime has no imports; the default background source contacts Picsum unless you select a local or Home Assistant-hosted source.
+The public presets contain no household entity IDs. HearthPane reads only the Home Assistant entities selected in the dashboard configuration. The runtime has no imports. Collection images and fallback photos contact GitHub's raw content host; optional Picsum backgrounds contact Picsum. No background credentials are sent to either host. The local gradient remains available if image requests fail.
 
 ## License
 
